@@ -7,6 +7,7 @@ x-airflow: &airflow
   environment: &airflow-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
     AIRFLOW__CORE__DEFAULT_TIMEZONE: Asia/Bangkok
     AIRFLOW__WEBSERVER__DEFAULT_UI_TIMEZONE: Asia/Bangkok
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-fuel}:${POSTGRES_PASSWORD:-fuel}@postgres:5432/airflow

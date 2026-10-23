@@ -66,7 +66,7 @@ docker compose up -d --build
 ```
 
 1. เปิด Airflow ที่ http://localhost:8080 (user / password ตาม `AIRFLOW_ADMIN_USER` / `AIRFLOW_ADMIN_PASSWORD` ใน `.env`)
-2. เปิด DAG `fuel_price_pipeline` (unpause) แล้วกด Trigger ใช้เวลารันประมาณ 1 นาที
+2. DAG `fuel_price_pipeline` ไม่ถูก pause ตั้งแต่สร้าง จึงรันรอบแรกเองทันทีที่ระบบขึ้น (ใช้เวลาประมาณ 1 นาที) จะกด Trigger ซ้ำก็ได้
 3. เปิด dashboard ที่ http://localhost:8000 และหน้าสถานะ pipeline ที่ http://localhost:8000/status
 
 PostgreSQL เปิดที่ `localhost:5433` (ฐานข้อมูล `fueldb`) ใช้ตรวจผลได้ เช่น

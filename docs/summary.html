@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>สรุปภาพรวม — ระบบรวมราคาน้ำมันขายปลีกรายวัน</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 10mm 12mm; }
+  body { font: 9.8pt/1.4 "Sarabun", sans-serif; color: #111; margin: 0; }
+  h1 { font-size: 15pt; margin: 0 0 2px; }
+  h2 { font-size: 12pt; margin: 10px 0 4px; padding-bottom: 2px; border-bottom: 1.5px solid #0b6e4f; color: #0b6e4f; }
+  h3 { font-size: 10.5pt; margin: 6px 0 2px; }
+  p { margin: 3px 0; }
+  ul, ol { margin: 2px 0 4px; padding-left: 18px; }
+  li { margin: 1px 0; }
+  .meta { font-size: 10pt; color: #333; border: 1px solid #ccc; border-radius: 4px; padding: 5px 8px; margin: 4px 0 6px; }
+  .meta b { color: #000; }
+  table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 3px 0; }
+  th, td { border: 1px solid #bbb; padding: 2px 5px; vertical-align: top; text-align: left; }
+  th { background: #eef5f2; }
+  .ok { color: #067647; font-weight: 700; }
+  figure { margin: 4px 0; }
+  figure img { width: 100%; border: 1px solid #ccc; display: block; }
+  figcaption { font-size: 8.5pt; color: #444; text-align: center; margin-top: 1px; }
+  .crop { height: 205px; object-fit: cover; object-position: top; }
+  .row { display: flex; gap: 8px; }
+  .row figure { flex: 1; }
+  .break { break-before: page; }
+  code { font-size: 9pt; background: #f1f1f1; padding: 0 3px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<h1>สรุปภาพรวม: ระบบรวมราคาน้ำมันขายปลีกรายวัน กรุงเทพฯ จาก 3 แหล่ง</h1>
+<div class="meta">
+  <b>รายวิชา</b> 02739452 แพลตฟอร์มข้อมูลขนาดใหญ่และการวิเคราะห์ · ข้อสอบปลายภาค ภาคต้น 2569<br>
+  <b>ชื่อ</b> ______________________ <b>รหัสนิสิต</b> ______________ <b>หมู่</b> ____ <b>ลำดับที่</b> ____<br>
+  <b>GitHub repo:</b> https://github.com/________/02739452-__-__________
+</div>
+
+<h2>1. ภาพรวมงานแต่ละส่วน — ทำได้ถึงระดับ 3 + โบนัสทั้ง 2 ข้อ</h2>
+<table>
+  <tr><th style="width:17%">ระดับ</th><th>สิ่งที่ทำ</th><th style="width:8%">ผล</th></tr>
+  <tr><td>ระดับ 1</td><td>DAG <code>fuel_price_pipeline</code>: extract → transform (merge) → load ลง PostgreSQL (<code>fueldb</code>) และเว็บ Flask แสดงตารางกับกราฟ</td><td class="ok">ครบ</td></tr>
+  <tr><td>ระดับ 2</td><td>ดึง 3 แหล่งขนานกันใน TaskGroup <code>extract</code>, แปลงชื่อน้ำมันทุกแหล่งให้เป็น schema เดียว <code>(price_date, brand, fuel_code, price)</code>, ใช้ UPSERT <code>ON CONFLICT DO UPDATE</code> (รันซ้ำ 5 รอบ จำนวนแถวคงที่ 1,830), เว็บมี KPI 5 ตัว และตัวกรองชนิดน้ำมัน ผู้ค้า และช่วงวันที่</td><td class="ok">ครบ</td></tr>
+  <tr><td>ระดับ 3</td><td>• <b>แหล่งล่ม:</b> <code>merge_sources</code> ใช้ <code>trigger_rule=all_done</code> และรวมเฉพาะแหล่งที่สำเร็จ ทดสอบด้วย Variable <code>simulate_down=bangchak_api</code> ได้ผลรอบนั้นเป็น <i>partial</i> และยังโหลดได้ครบ 1,830 แถว<br>
+  • <b>ตัดซ้ำข้ามแหล่ง:</b> ราคา PTT มีทั้งจาก ปตท. และ สนพ. ส่วน BCP มีทั้งจากบางจากและ สนพ. จึงเลือก 1 แถวต่อ (วัน, ผู้ค้า, น้ำมัน) โดยให้แหล่งของเจ้าของแบรนด์ชนะ (2,206 แถวดิบ → 1,920 แถว)<br>
+  • <b>Data Quality + branch:</b> ตรวจช่วงราคา 10–100 บาท, วันที่ในอนาคต และราคาที่ต่างจากมัธยฐานของผู้ค้าอื่นเกิน 15% ถ้าไม่ผ่าน DAG จะแตกไปทาง <code>quarantine_bad_rows</code> แล้วย้ายแถวไปตาราง <code>dq_rejects</code> (พบราคา ESSO ผิดปกติ 90 แถว)</td><td class="ok">ครบ</td></tr>
+  <tr><td>โบนัส</td><td>Dynamic Task Mapping: <code>scrape_eppo_day.expand()</code> สร้าง task ละ 1 วัน รวม 30 task · หน้าสถานะ pipeline บนเว็บที่ <code>/status</code></td><td class="ok">ครบ</td></tr>
+</table>
+<p><b>แหล่งข้อมูล:</b> (1) ปตท. SOAP Web Service <code>GetOilPrice</code> (2) บางจาก Oil Price API แบบ JSON (3) สนพ. ใช้ <b>web scraping</b> ด้วย requests + BeautifulSoup โดย GET หน้า ASP.NET เพื่ออ่าน <code>__VIEWSTATE</code> แล้ว POST วันที่ ได้ราคาของ 10 ผู้ค้า (ไม่ใช้ Selenium) ปฏิบัติตาม robots.txt, เว้นระยะ request และไม่เก็บข้อมูลส่วนบุคคล ชุดข้อมูลรวมมี 1,830 รายการ ครอบคลุม 30 วัน, 10 ผู้ค้า และ 11 ชนิดน้ำมัน</p>
+
+<figure><img src="images/airflow_graph_outage_test_bangchak.png" class="crop" style="height:390px; object-position: 0 75%"><figcaption>ภาพที่ 1 Graph view (ขวา) และ Grid view (ซ้าย) ของรอบ <code>outage_test_bangchak</code>: <code>extract_bangchak</code> ล้มเหลว (สีแดง) แต่ merge, quality_check และ load ยังทำงานต่อได้ · <code>scrape_eppo_day [30]</code> คือ Dynamic Task Mapping · DQ ไม่ผ่านจึงไปทาง quarantine_bad_rows และ dq_passed ถูก skip</figcaption></figure>
+
+
+<figure><img src="images/airflow_graph_final_run.png" class="crop" style="height:250px; object-position: 0 62%"><figcaption>ภาพที่ 2 Graph view และ Grid view ของรอบปกติ <code>final_run</code>: Grid ซ้ายแสดงประวัติ 5 รอบ (รอบที่ 4 คือรอบจำลองแหล่งล่ม)</figcaption></figure>
+<div class="row">
+  <figure><img src="images/web_dashboard.png" class="crop" style="height:230px"><figcaption>ภาพที่ 3 Dashboard (http://localhost:8000): ตัวกรอง, KPI, กราฟแนวโน้ม, กราฟเทียบผู้ค้า และตาราง (มีแบ่งหน้า)</figcaption></figure>
+  <figure><img src="images/web_status.png" class="crop" style="height:230px"><figcaption>ภาพที่ 4 หน้าสถานะ Pipeline (/status): สถานะแต่ละแหล่ง, แถวที่ไม่ผ่าน DQ และประวัติการรัน</figcaption></figure>
+</div>
+
+<h2>2. ปัญหาที่พบและวิธีแก้</h2>
+<table>
+  <tr><th style="width:21%">ปัญหา / อาการ</th><th style="width:37%">วิธีหาสาเหตุ</th><th>วิธีแก้</th></tr>
+  <tr><td><b>1. ตารางราคาบนเว็บ สนพ. มีแต่ 30.00</b> ทุกช่อง</td>
+      <td>อ่าน HTML ที่ดึงมาด้วย requests พบว่าเป็นค่า placeholder และราคาจริงถูกเติมด้วย JavaScript ภายหลัง ซึ่งใช้ Selenium ไม่ได้ จึงหา iframe ในหน้าเดียวกันจนพบหน้ารายงาน ASP.NET <code>ropbydaypublic.aspx</code></td>
+      <td>scrape ฟอร์มแทน: GET หน้าเพื่ออ่าน hidden field (<code>__VIEWSTATE</code>, <code>__EVENTVALIDATION</code>) แล้ว POST <code>TbxToDate</code> ได้รายงานรายวันที่ย้อนหลังได้ และมีครบทุกผู้ค้า</td></tr>
+  <tr><td><b>2. scrape สนพ. ล้มเหลวเป็นบางครั้ง</b> ด้วย <code>ChunkedEncodingError: IncompleteRead</code></td>
+      <td>ดู traceback ใน log ของ task พบว่าเซิร์ฟเวอร์ตัดการเชื่อมต่อระหว่างส่งหน้า 250 KB ซึ่ง urllib3 Retry ไม่ครอบคลุมกรณีที่ตัดกลาง body</td>
+      <td>เขียน <code>_with_retry()</code> ลองใหม่ 3 ครั้งแบบ backoff และแบ่ง scraping เป็น task ละวัน (Dynamic Task Mapping, ขนานไม่เกิน 4) วันที่ล้มเหลวจึงไม่ทำให้วันอื่นล้มตาม</td></tr>
+  <tr><td><b>3. ราคาบางจากวันที่ 22 ต.ค. ไม่ตรงกับ สนพ.</b> (41.44 กับ 42.04) ทำให้กราฟมีจุดตก</td>
+      <td>เทียบแถวที่ซ้ำกันข้ามแหล่งใน <code>stg_fuel_prices</code> แล้วอ่าน JSON ของบางจากอีกครั้ง พบว่า <code>PriceYesterday</code> คือราคาก่อนการปรับครั้งล่าสุด (วันประกาศ <code>OilPriceDate</code>) ไม่ใช่ราคาของ "วันนี้ − 1"</td>
+      <td>ใช้ <code>PriceYesterday</code> กับวันที่ <code>OilPriceDate</code> ลบแถวผิดใน staging แล้วรันใหม่ ผลคือราคาตรงกันทุกวัน การเก็บคอลัมน์ <code>sources</code> ไว้ช่วยให้ตรวจไขว้แบบนี้ได้</td></tr>
+  <tr><td><b>4. DAG import error</b>: <code>Context key parameter run_id can't have a default</code></td>
+      <td>รัน <code>airflow dags list-import-errors</code></td>
+      <td>เปลี่ยน default ของ <code>run_id</code> จาก <code>"{{ run_id }}"</code> เป็น <code>None</code> ให้ TaskFlow inject ค่าจาก context เอง</td></tr>
+</table>
+<p>ข้อสังเกตจาก DQ: ราคา ESSO ใน สนพ. ต่ำกว่าผู้ค้าอื่นประมาณ 20% และวันที่มีผล (24 ก.ย. 2568) ไม่ได้อัปเดต กฎ outlier จึงกักแถวเหล่านี้ไว้ ไม่ให้เข้าชุดข้อมูลหลัก</p>
+
+<h2>3. การวางแผนและจัดลำดับงาน (13:00–16:00)</h2>
+<table>
+  <tr><th style="width:17%">เวลา</th><th>งาน</th></tr>
+  <tr><td>13:00–13:15</td><td>อ่านโจทย์ เลือกหัวข้อที่มีแหล่งข้อมูลราคาเดียวกันหลายแหล่ง ทดสอบว่าแต่ละแหล่งเรียกได้จริงและอ่าน robots.txt แล้วจึงจองหัวข้อ</td></tr>
+  <tr><td>13:15–13:25</td><td>สำรวจโครงสร้างข้อมูลแต่ละแหล่ง (SOAP, JSON, ฟอร์ม ASP.NET) ออกแบบ schema กลางและกฎแปลงชื่อน้ำมัน</td></tr>
+  <tr><td>13:25–14:10</td><td>เขียน DAG ให้ระดับ 1 ใช้งานได้ก่อน แล้วเพิ่ม TaskGroup, UPSERT, การรับมือแหล่งล่ม, การตัดซ้ำ, DQ branch และ Dynamic Task Mapping ตามลำดับ</td></tr>
+  <tr><td>14:10–14:40</td><td>เขียนเว็บ dashboard และหน้า status ทดสอบรันซ้ำ จำลองแหล่งล่ม และแก้ปัญหาข้อ 2–4</td></tr>
+  <tr><td>14:40–15:30</td><td>ถ่ายภาพหน้าจอ เขียน README และ PDF จากนั้นทดสอบ <code>docker compose up</code> จาก repo ใหม่ทั้งหมด</td></tr>
+  <tr><td>15:30–16:00</td><td>เวลาสำรอง: push ขึ้น GitHub ตรวจว่า repo เป็น public และส่งงาน</td></tr>
+</table>
+<p><b>สิ่งที่ตัดออกและเหตุผล</b></p>
+<ul>
+  <li><b>ไม่ทำโมเดลพยากรณ์ราคาหรือ alert ทาง LINE/อีเมล:</b> โจทย์ไม่ได้ให้คะแนนส่วนนี้ และต้องใช้ API key ซึ่งห้าม commit</li>
+  <li><b>ดึงย้อนหลังแค่ 30 วัน (ตั้งค่าได้ที่ <code>FUEL_LOOKBACK_DAYS</code>):</b> ข้อมูลเกิน 100 รายการอยู่แล้ว ทั้งยังไม่สร้างภาระให้เว็บหน่วยงาน และอาจารย์รันตรวจได้ในเวลาประมาณ 1 นาที</li>
+  <li><b>ใช้ LocalExecutor แทน Celery และใช้ Flask + Chart.js แทน framework ใหญ่:</b> ใช้เวลา build และรันน้อยกว่า และลดโอกาสที่อาจารย์จะรันไม่ขึ้น</li>
+  <li><b>ไม่ทำหน่วยงานแยกรายจังหวัด:</b> ขอบเขตที่จองไว้คือกรุงเทพฯ และปริมณฑล ตามที่ทั้ง 3 แหล่งรายงาน</li>
+</ul>
+</body>
+</html>
