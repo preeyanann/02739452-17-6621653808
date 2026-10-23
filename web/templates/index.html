@@ -49,6 +49,13 @@
 {% block scripts %}
 <script>
 const palette = ['#dc2626', '#f59e0b', '#2563eb', '#7c3aed', '#059669', '#0891b2', '#db2777', '#ea580c', '#64748b', '#65a30d'];
+// สีประจำแบรนด์ (รายที่ไม่มีสีเด่นชัดใช้สีที่แยกจากรายอื่นได้ง่าย)
+const BRAND_COLORS = { PTT: '#1f4e9e', BCP: '#6cb33f', SHELL: '#f2b705', ESSO: '#e01f26', CHEVRON: '#00a3e0',
+                       IRPC: '#f37021', PTG: '#00703c', SUSCO: '#7c3aed', PURE: '#db2777', SUSCO_DEALER: '#a78bfa' };
+// สีประจำชนิดน้ำมันตามป้ายหน้าปั๊มในไทย
+const FUEL_COLORS = { gsh95: '#f26b1d', gsh91: '#16a34a', e20: '#0f5f2e', e85: '#c5d82b', ulg95: '#ffd600',
+                      gsh95_premium: '#8cc63f', gsh99_premium: '#b11f6b', diesel_b7: '#0a6fb5', diesel_b10: '#1e9be0',
+                      diesel_b20: '#38b6e8', diesel_premium: '#7e2a8e' };
 const brandColor = {};
 const srcLabel = { ptt_soap: 'ปตท.', bangchak_api: 'บางจาก', eppo_web: 'สนพ.' };
 const state = { fuel: 'gsh95', brands: new Set(), start: '', end: '', page: 1 };
@@ -67,7 +74,7 @@ const brandTag = b => `<span class="brand"><i style="background:${brandColor[b] 
 
 async function init() {
   meta = await getJSON('/api/meta');
-  meta.brands.forEach((b, i) => brandColor[b] = palette[i % palette.length]);
+  meta.brands.forEach((b, i) => brandColor[b] = BRAND_COLORS[b] || palette[i % palette.length]);
   const sel = document.getElementById('fuel');
   sel.innerHTML = '<option value="">ทุกชนิด</option>' + meta.fuels.map(f => `<option value="${f.fuel_code}">${f.fuel_name}</option>`).join('');
   sel.value = state.fuel;
@@ -105,7 +112,7 @@ async function loadBoard() {
     const ch = r.change_7d;
     const chTxt = ch == null ? '' : ch === 0 ? '<span class="muted">คงที่ 7 วัน</span>'
       : `<span class="${ch > 0 ? 'up' : 'down'}">${ch > 0 ? '▲' : '▼'} ${fmt(Math.abs(ch))} / 7 วัน</span>`;
-    const swatch = r.fuel_group === 'ดีเซล' ? '#dc2626' : '#f59e0b';
+    const swatch = FUEL_COLORS[r.fuel_code] || (r.fuel_group === 'ดีเซล' ? '#0a6fb5' : '#f26b1d');
     return `<button class="fuel ${r.fuel_code === state.fuel ? 'on' : ''}" data-f="${r.fuel_code}">
       <div class="name"><span class="swatch" style="background:${swatch}"></span>${r.fuel_name}</div>
       <div class="price num">${fmt(r.min_price)}<small> บาท</small></div>
@@ -176,7 +183,7 @@ async function loadCharts() {
   barChart?.destroy();
   barChart = new Chart(document.getElementById('bars'), {
     type: 'bar', plugins: [valueLabels],
-    data: { labels: bars.map(r => r.brand), datasets: [{ data: values, backgroundColor: bars.map(r => r.price === cheapest ? '#f59e0b' : brandColor[r.brand] + '99'), borderRadius: 6, barThickness: 18 }] },
+    data: { labels: bars.map(r => r.brand), datasets: [{ data: values, backgroundColor: bars.map(r => brandColor[r.brand] + (r.price === cheapest ? '' : '66')), borderRadius: 6, barThickness: 18 }] },
     options: { indexAxis: 'y', maintainAspectRatio: false, layout: { padding: { right: 44 } }, plugins: { legend: { display: false }, tooltip },
       scales: { x: { grid, ticks, min: lo, max: hi }, y: { grid: { display: false }, ticks: { ...ticks, color: css('--ink') } } } },
   });
