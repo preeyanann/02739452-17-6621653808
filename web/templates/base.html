@@ -9,18 +9,18 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
     :root {
-      --bg: #f3f5f8; --bg-2: #e9eef5; --card: #ffffff; --card-2: #f7f9fc; --ink: #101828; --muted: #5b6678;
-      --line: #e2e7ef; --accent: #0e9f6e; --accent-2: #f59e0b; --accent-soft: rgba(14, 159, 110, .12);
-      --hero-1: #0b3b2e; --hero-2: #0f5132; --hero-ink: #ecfdf5;
+      --bg: #faf6f1; --bg-2: #f5ede4; --card: #ffffff; --card-2: #f7f9fc; --ink: #101828; --muted: #5b6678;
+      --line: #ece4dc; --accent: #dc2626; --accent-2: #f59e0b; --accent-soft: rgba(220, 38, 38, .10);
+      --hero-1: #991b1b; --hero-2: #dc2626; --hero-ink: #fffbeb;
       --ok: #067647; --ok-soft: #dcfae6; --warn: #b54708; --warn-soft: #fef0e1; --bad: #c0362c; --bad-soft: #fde8e6;
       --shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 4px 16px rgba(16, 24, 40, .06);
       --up: #d92d20; --down: #079455;
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
-        --bg: #0a0f14; --bg-2: #0f171e; --card: #121b23; --card-2: #17222c; --ink: #e8eef4; --muted: #93a2b1;
-        --line: #22303c; --accent: #34d399; --accent-2: #fbbf24; --accent-soft: rgba(52, 211, 153, .12);
-        --hero-1: #062a20; --hero-2: #0b3d2c; --hero-ink: #ecfdf5;
+        --bg: #110b09; --bg-2: #1a110d; --card: #1c1411; --card-2: #251a15; --ink: #e8eef4; --muted: #93a2b1;
+        --line: #3a2a22; --accent: #f87171; --accent-2: #fbbf24; --accent-soft: rgba(248, 113, 113, .14);
+        --hero-1: #450a0a; --hero-2: #7f1d1d; --hero-ink: #fffbeb;
         --ok: #47cd89; --ok-soft: #12321f; --warn: #f5a35c; --warn-soft: #3a2614; --bad: #f97066; --bad-soft: #3d1a17;
         --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
         --up: #f97066; --down: #47cd89;
@@ -34,7 +34,7 @@
     header.top { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--card) 85%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
     .bar { display: flex; align-items: center; gap: 28px; height: 62px; }
     .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; color: var(--ink); text-decoration: none; }
-    .logo-mark { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: linear-gradient(135deg, var(--accent), #0b7a55); color: #fff; }
+    .logo-mark { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: linear-gradient(135deg, #dc2626, #f59e0b); color: #fff; }
     .logo small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); line-height: 1.1; }
     nav { display: flex; gap: 4px; }
     nav a { color: var(--muted); text-decoration: none; font-weight: 500; padding: 7px 14px; border-radius: 999px; }
@@ -48,7 +48,7 @@
 
     main { padding: 22px 0 56px; }
     .hero { position: relative; overflow: hidden; border-radius: 18px; padding: 26px 28px; margin-bottom: 18px; color: var(--hero-ink);
-            background: radial-gradient(1200px 300px at 100% 0%, rgba(245, 158, 11, .25), transparent 60%), linear-gradient(135deg, var(--hero-1), var(--hero-2)); }
+            background: radial-gradient(900px 320px at 100% 0%, rgba(251, 191, 36, .55), transparent 60%), linear-gradient(135deg, var(--hero-1), var(--hero-2)); }
     .hero h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -.01em; }
     .hero p { margin: 0; opacity: .85; }
     .hero .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }

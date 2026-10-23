@@ -25,9 +25,9 @@
 
 <div class="grid kpis">
   <div class="card kpi" style="--k: var(--accent)"><div class="label">ราคาเฉลี่ย</div><div class="value num" id="k-avg">–</div><div class="hint">บาท/ลิตร ตามตัวกรอง</div></div>
-  <div class="card kpi" style="--k: #10b981"><div class="label">ถูกที่สุด ณ วันล่าสุด</div><div class="value num" id="k-cheap">–</div><div class="hint" id="k-cheap-who">&nbsp;</div></div>
-  <div class="card kpi" style="--k: var(--accent-2)"><div class="label">เปลี่ยนแปลงในช่วงที่เลือก</div><div class="value num" id="k-change">–</div><div class="hint">วันล่าสุดเทียบวันแรก</div></div>
-  <div class="card kpi" style="--k: #6366f1"><div class="label">จำนวนรายการ</div><div class="value num" id="k-rows">–</div><div class="hint" id="k-rows-hint">&nbsp;</div></div>
+  <div class="card kpi" style="--k: #f59e0b"><div class="label">ถูกที่สุด ณ วันล่าสุด</div><div class="value num" id="k-cheap">–</div><div class="hint" id="k-cheap-who">&nbsp;</div></div>
+  <div class="card kpi" style="--k: #ea580c"><div class="label">เปลี่ยนแปลงในช่วงที่เลือก</div><div class="value num" id="k-change">–</div><div class="hint">วันล่าสุดเทียบวันแรก</div></div>
+  <div class="card kpi" style="--k: #b91c1c"><div class="label">จำนวนรายการ</div><div class="value num" id="k-rows">–</div><div class="hint" id="k-rows-hint">&nbsp;</div></div>
   <div class="card kpi" style="--k: #64748b"><div class="label">ครอบคลุม</div><div class="value" id="k-scope" style="font-size:22px">–</div><div class="hint" id="k-latest">&nbsp;</div></div>
 </div>
 
@@ -48,7 +48,7 @@
 
 {% block scripts %}
 <script>
-const palette = ['#10b981', '#3b82f6', '#f97316', '#a855f7', '#eab308', '#06b6d4', '#ec4899', '#6366f1', '#94a3b8', '#84cc16'];
+const palette = ['#dc2626', '#f59e0b', '#2563eb', '#7c3aed', '#059669', '#0891b2', '#db2777', '#ea580c', '#64748b', '#65a30d'];
 const brandColor = {};
 const srcLabel = { ptt_soap: 'ปตท.', bangchak_api: 'บางจาก', eppo_web: 'สนพ.' };
 const state = { fuel: 'gsh95', brands: new Set(), start: '', end: '', page: 1 };
@@ -105,7 +105,7 @@ async function loadBoard() {
     const ch = r.change_7d;
     const chTxt = ch == null ? '' : ch === 0 ? '<span class="muted">คงที่ 7 วัน</span>'
       : `<span class="${ch > 0 ? 'up' : 'down'}">${ch > 0 ? '▲' : '▼'} ${fmt(Math.abs(ch))} / 7 วัน</span>`;
-    const swatch = r.fuel_group === 'ดีเซล' ? '#3b82f6' : '#10b981';
+    const swatch = r.fuel_group === 'ดีเซล' ? '#dc2626' : '#f59e0b';
     return `<button class="fuel ${r.fuel_code === state.fuel ? 'on' : ''}" data-f="${r.fuel_code}">
       <div class="name"><span class="swatch" style="background:${swatch}"></span>${r.fuel_name}</div>
       <div class="price num">${fmt(r.min_price)}<small> บาท</small></div>
@@ -176,7 +176,7 @@ async function loadCharts() {
   barChart?.destroy();
   barChart = new Chart(document.getElementById('bars'), {
     type: 'bar', plugins: [valueLabels],
-    data: { labels: bars.map(r => r.brand), datasets: [{ data: values, backgroundColor: bars.map(r => r.price === cheapest ? '#10b981' : brandColor[r.brand] + '99'), borderRadius: 6, barThickness: 18 }] },
+    data: { labels: bars.map(r => r.brand), datasets: [{ data: values, backgroundColor: bars.map(r => r.price === cheapest ? '#f59e0b' : brandColor[r.brand] + '99'), borderRadius: 6, barThickness: 18 }] },
     options: { indexAxis: 'y', maintainAspectRatio: false, layout: { padding: { right: 44 } }, plugins: { legend: { display: false }, tooltip },
       scales: { x: { grid, ticks, min: lo, max: hi }, y: { grid: { display: false }, ticks: { ...ticks, color: css('--ink') } } } },
   });
