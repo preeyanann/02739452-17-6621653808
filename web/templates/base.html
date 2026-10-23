@@ -36,7 +36,10 @@
     .bar { display: flex; align-items: center; gap: 28px; height: 62px; }
     .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; color: var(--ink); text-decoration: none; }
     .logo-mark { width: 38px; height: 38px; border-radius: 10px; display: block; }
-    .logo small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); line-height: 1.1; }
+    .logo { gap: 12px; font-size: 18px; line-height: 1.15; }
+    .logo-div { width: 2px; height: 34px; background: var(--accent); }
+    .logo small { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 400; color: var(--muted); line-height: 1.3; }
+    .logo-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-2); }
     nav { display: flex; gap: 4px; }
     nav a { color: var(--muted); text-decoration: none; font-weight: 500; padding: 7px 14px; border-radius: 999px; }
     nav a:hover { background: var(--card-2); color: var(--ink); }
@@ -45,7 +48,7 @@
     .live { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
     .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 var(--accent); animation: pulse 2s infinite; }
     @keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent); } 70% { box-shadow: 0 0 0 8px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
-    @media (max-width: 640px) { .live { display: none; } .bar { gap: 12px; } .logo small { display: none; } }
+    @media (max-width: 640px) { .live { display: none; } .bar { gap: 12px; } .logo small, .logo-div { display: none; } }
 
     main { padding: 22px 0 56px; }
     .hero { position: relative; overflow: hidden; border-radius: 18px; padding: 26px 28px; margin-bottom: 18px; color: var(--hero-ink);
@@ -128,7 +131,8 @@
 <header class="top"><div class="wrap bar">
   <a class="logo" href="/">
     <img class="logo-mark" src="/static/logo.svg" alt="" width="38" height="38">
-    <span>ราคาน้ำมันกรุงเทพฯ<small>Fuel Price Pipeline · 02739452</small></span>
+    <span class="logo-div" aria-hidden="true"></span>
+    <span>ราคาน้ำมันกรุงเทพฯ<small><span class="logo-dot" aria-hidden="true"></span>Fuel Price Pipeline · 02739452</small></span>
   </a>
   <nav>
     <a href="/" class="{{ 'on' if page == 'dashboard' }}">Dashboard</a>
