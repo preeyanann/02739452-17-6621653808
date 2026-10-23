@@ -1,42 +1,56 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>ราคาน้ำมันขายปลีกรายวัน กรุงเทพฯ และปริมณฑล</h1>
-<p class="sub">รวมจาก ปตท. (SOAP), บางจาก (API) และ สนพ. (web scraping) · ตัดรายการซ้ำข้ามแหล่งแล้ว · หน่วย บาท/ลิตร</p>
+<section class="hero">
+  <h1>ราคาน้ำมันขายปลีกรายวัน กรุงเทพฯ และปริมณฑล</h1>
+  <p>รวมราคาจาก 3 แหล่งเป็นชุดเดียว ตัดรายการซ้ำข้ามแหล่งและตรวจคุณภาพแล้ว · หน่วย บาท/ลิตร</p>
+  <div class="pills">
+    <span class="pill">ข้อมูลล่าสุด <b id="h-latest">–</b></span>
+    <span class="pill"><b id="h-rows">–</b> รายการในฐานข้อมูล</span>
+    <span class="pill">ปตท. SOAP · บางจาก API · สนพ. web scraping</span>
+  </div>
+  <svg class="bg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M3 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17"/><path d="M2 22h14"/><path d="M15 10h2a2 2 0 0 1 2 2v4a1.5 1.5 0 0 0 3 0V8l-3-3"/><rect x="6" y="6" width="6" height="5" rx="1"/></svg>
+</section>
 
+<div class="section-title"><h2>ป้ายราคาวันนี้ <span class="sub">ราคาต่ำสุดข้ามผู้ค้า · กดเพื่อดูรายละเอียด</span></h2></div>
+<div class="grid board" id="board"></div>
+
+<div class="section-title"><h2>วิเคราะห์ตามตัวกรอง</h2></div>
 <div class="card filters">
   <label>ชนิดน้ำมัน <select id="fuel"></select></label>
   <label>ตั้งแต่ <input type="date" id="start"></label>
   <label>ถึง <input type="date" id="end"></label>
-  <label style="flex:1; min-width:240px">ผู้ค้า (กดเลือกได้หลายราย)<div class="chips" id="brands"></div></label>
-  <button id="reset">ล้างตัวกรอง</button>
+  <label style="flex:1; min-width:260px">ผู้ค้า (เลือกได้หลายราย)<div class="chips" id="brands"></div></label>
+  <button class="ghost" id="reset">ล้างตัวกรอง</button>
 </div>
 
 <div class="grid kpis">
-  <div class="card kpi"><div class="label">ราคาเฉลี่ย</div><div class="value" id="k-avg">–</div><div class="hint">ตามตัวกรอง</div></div>
-  <div class="card kpi"><div class="label">ถูกที่สุด (วันล่าสุด)</div><div class="value" id="k-cheap">–</div><div class="hint" id="k-cheap-who">&nbsp;</div></div>
-  <div class="card kpi"><div class="label">เปลี่ยนแปลงในช่วงที่เลือก</div><div class="value" id="k-change">–</div><div class="hint">วันล่าสุดเทียบวันแรก</div></div>
-  <div class="card kpi"><div class="label">จำนวนรายการ</div><div class="value" id="k-rows">–</div><div class="hint" id="k-rows-hint">&nbsp;</div></div>
-  <div class="card kpi"><div class="label">ข้อมูลล่าสุด</div><div class="value" id="k-latest" style="font-size:20px">–</div><div class="hint" id="k-scope">&nbsp;</div></div>
+  <div class="card kpi" style="--k: var(--accent)"><div class="label">ราคาเฉลี่ย</div><div class="value num" id="k-avg">–</div><div class="hint">บาท/ลิตร ตามตัวกรอง</div></div>
+  <div class="card kpi" style="--k: #10b981"><div class="label">ถูกที่สุด ณ วันล่าสุด</div><div class="value num" id="k-cheap">–</div><div class="hint" id="k-cheap-who">&nbsp;</div></div>
+  <div class="card kpi" style="--k: var(--accent-2)"><div class="label">เปลี่ยนแปลงในช่วงที่เลือก</div><div class="value num" id="k-change">–</div><div class="hint">วันล่าสุดเทียบวันแรก</div></div>
+  <div class="card kpi" style="--k: #6366f1"><div class="label">จำนวนรายการ</div><div class="value num" id="k-rows">–</div><div class="hint" id="k-rows-hint">&nbsp;</div></div>
+  <div class="card kpi" style="--k: #64748b"><div class="label">ครอบคลุม</div><div class="value" id="k-scope" style="font-size:22px">–</div><div class="hint" id="k-latest">&nbsp;</div></div>
 </div>
 
 <div class="grid two">
-  <div class="card"><h2>แนวโน้มราคาตามผู้ค้า</h2><div class="chart"><canvas id="line"></canvas></div></div>
-  <div class="card"><h2>เทียบผู้ค้า ณ วันล่าสุด</h2><div class="chart"><canvas id="bars"></canvas></div></div>
+  <div class="card"><h2>แนวโน้มราคาตามผู้ค้า <span class="sub" id="line-sub"></span></h2><div class="chart"><canvas id="line"></canvas></div></div>
+  <div class="card"><h2>เทียบผู้ค้า <span class="sub">ณ วันล่าสุด</span></h2><div class="chart"><canvas id="bars"></canvas></div></div>
 </div>
 
 <div class="card">
-  <h2>ตารางข้อมูล</h2>
+  <h2>ตารางข้อมูล <span class="sub" id="table-sub"></span></h2>
   <div class="scroll"><table>
-    <thead><tr><th>วันที่</th><th>ผู้ค้า</th><th>ชนิดน้ำมัน</th><th style="text-align:right">ราคา</th><th>แหล่งที่เลือก</th><th>พบในแหล่ง</th></tr></thead>
+    <thead><tr><th>วันที่</th><th>ผู้ค้า</th><th>ชนิดน้ำมัน</th><th class="num">ราคา (บาท/ลิตร)</th><th>แหล่งที่เลือก</th><th>พบในแหล่ง</th></tr></thead>
     <tbody id="rows"></tbody>
   </table></div>
-  <div class="pager"><button id="prev">‹ ก่อนหน้า</button><span id="pageinfo"></span><button id="next">ถัดไป ›</button></div>
+  <div class="pager"><button class="ghost" id="prev">‹ ก่อนหน้า</button><span id="pageinfo"></span><button class="ghost" id="next">ถัดไป ›</button></div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-const palette = ['#0b6e4f', '#2f6fdf', '#d9480f', '#9c36b5', '#e8a200', '#1098ad', '#c2255c', '#5c7cfa', '#6b7280', '#37b24d'];
+const palette = ['#10b981', '#3b82f6', '#f97316', '#a855f7', '#eab308', '#06b6d4', '#ec4899', '#6366f1', '#94a3b8', '#84cc16'];
+const brandColor = {};
+const srcLabel = { ptt_soap: 'ปตท.', bangchak_api: 'บางจาก', eppo_web: 'สนพ.' };
 const state = { fuel: 'gsh95', brands: new Set(), start: '', end: '', page: 1 };
 let lineChart, barChart, meta;
 
@@ -49,13 +63,15 @@ function qs(extra = {}) {
   Object.entries(extra).forEach(([k, v]) => p.set(k, v));
   return p.toString();
 }
+const brandTag = b => `<span class="brand"><i style="background:${brandColor[b] || '#999'}"></i>${b}</span>`;
 
 async function init() {
   meta = await getJSON('/api/meta');
+  meta.brands.forEach((b, i) => brandColor[b] = palette[i % palette.length]);
   const sel = document.getElementById('fuel');
   sel.innerHTML = '<option value="">ทุกชนิด</option>' + meta.fuels.map(f => `<option value="${f.fuel_code}">${f.fuel_name}</option>`).join('');
   sel.value = state.fuel;
-  document.getElementById('brands').innerHTML = meta.brands.map(b => `<span class="chip" data-b="${b}">${b}</span>`).join('');
+  document.getElementById('brands').innerHTML = meta.brands.map(b => `<span class="chip" data-b="${b}" style="--c:${brandColor[b]}"><i style="background:${brandColor[b]}"></i>${b}</span>`).join('');
   document.querySelectorAll('.chip').forEach(c => c.onclick = () => {
     state.brands.has(c.dataset.b) ? state.brands.delete(c.dataset.b) : state.brands.add(c.dataset.b);
     c.classList.toggle('on'); state.page = 1; refresh();
@@ -64,15 +80,40 @@ async function init() {
     const el = document.getElementById(id); el.min = meta.min_date; el.max = meta.max_date;
     el.onchange = () => { state[id] = el.value; state.page = 1; refresh(); };
   }
-  sel.onchange = () => { state.fuel = sel.value; state.page = 1; refresh(); };
+  sel.onchange = () => setFuel(sel.value);
   document.getElementById('reset').onclick = () => {
-    state.fuel = 'gsh95'; state.brands.clear(); state.start = state.end = ''; state.page = 1;
-    sel.value = state.fuel; document.getElementById('start').value = document.getElementById('end').value = '';
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('on')); refresh();
+    state.brands.clear(); state.start = state.end = '';
+    document.getElementById('start').value = document.getElementById('end').value = '';
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('on')); setFuel('gsh95');
   };
   document.getElementById('prev').onclick = () => { if (state.page > 1) { state.page--; loadTable(); } };
   document.getElementById('next').onclick = () => { state.page++; loadTable(); };
+  await loadBoard();
   refresh();
+}
+
+function setFuel(code) {
+  state.fuel = code; state.page = 1;
+  document.getElementById('fuel').value = code;
+  document.querySelectorAll('.fuel').forEach(f => f.classList.toggle('on', f.dataset.f === code));
+  refresh();
+}
+
+async function loadBoard() {
+  const rows = await getJSON('/api/board');
+  document.getElementById('board').innerHTML = rows.map(r => {
+    const ch = r.change_7d;
+    const chTxt = ch == null ? '' : ch === 0 ? '<span class="muted">คงที่ 7 วัน</span>'
+      : `<span class="${ch > 0 ? 'up' : 'down'}">${ch > 0 ? '▲' : '▼'} ${fmt(Math.abs(ch))} / 7 วัน</span>`;
+    const swatch = r.fuel_group === 'ดีเซล' ? '#3b82f6' : '#10b981';
+    return `<button class="fuel ${r.fuel_code === state.fuel ? 'on' : ''}" data-f="${r.fuel_code}">
+      <div class="name"><span class="swatch" style="background:${swatch}"></span>${r.fuel_name}</div>
+      <div class="price num">${fmt(r.min_price)}<small> บาท</small></div>
+      <div class="meta"><span>${r.min_price === r.max_price ? "ทุกผู้ค้าเท่ากัน" : `ถูกสุด ${r.cheapest_brand} · แพงสุด ${fmt(r.max_price)}`}</span></div>
+      <div class="meta">${chTxt}<span>${r.brands} ราย</span></div>
+    </button>`;
+  }).join('');
+  document.querySelectorAll('.fuel').forEach(f => f.onclick = () => setFuel(f.dataset.f));
 }
 
 async function refresh() { await Promise.all([loadKpi(), loadCharts(), loadTable()]); }
@@ -84,36 +125,60 @@ async function loadKpi() {
   document.getElementById('k-cheap').textContent = k.cheapest ? fmt(k.cheapest.price) : '–';
   document.getElementById('k-cheap-who').textContent = k.cheapest ? `${k.cheapest.brand} · ${k.cheapest.fuel_name}` : '';
   const ch = document.getElementById('k-change');
-  ch.textContent = k.change == null ? '–' : (k.change > 0 ? '+' : '') + fmt(k.change);
-  ch.style.color = k.change > 0 ? css('--bad') : k.change < 0 ? css('--ok') : '';
+  ch.textContent = k.change == null ? '–' : (k.change > 0 ? '▲ ' : k.change < 0 ? '▼ ' : '') + fmt(Math.abs(k.change));
+  ch.className = 'value num ' + (k.change > 0 ? 'up' : k.change < 0 ? 'down' : '');
   document.getElementById('k-rows').textContent = fmt(s.rows, 0);
-  document.getElementById('k-rows-hint').textContent = `ตรวจไขว้ >1 แหล่ง ${fmt(s.cross_checked, 0)} รายการ`;
-  document.getElementById('k-latest').textContent = s.latest ? new Date(s.latest).toLocaleDateString('th-TH', { dateStyle: 'medium' }) : '–';
-  document.getElementById('k-scope').textContent = `${s.brands} ผู้ค้า · ${s.fuels} ชนิดน้ำมัน`;
+  document.getElementById('k-rows-hint').textContent = `ตรวจไขว้ได้มากกว่า 1 แหล่ง ${fmt(s.cross_checked, 0)} รายการ`;
+  document.getElementById('k-scope').textContent = `${s.brands} ผู้ค้า · ${s.fuels} ชนิด`;
+  document.getElementById('k-latest').textContent = 'ข้อมูลถึง ' + thaiDate(s.latest);
+  document.getElementById('h-latest').textContent = thaiDate(meta.max_date);
 }
+
+const valueLabels = {
+  id: 'valueLabels',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    chart.getDatasetMeta(0).data.forEach((bar, i) => {
+      ctx.save();
+      ctx.fillStyle = css('--ink'); ctx.font = '600 12px "JetBrains Mono", monospace'; ctx.textBaseline = 'middle';
+      ctx.fillText(fmt(chart.data.datasets[0].data[i]), bar.x + 6, bar.y);
+      ctx.restore();
+    });
+  },
+};
 
 async function loadCharts() {
   const [series, bars] = await Promise.all([getJSON('/api/series?' + qs()), getJSON('/api/brand-compare?' + qs())]);
   const dates = [...new Set(series.map(r => r.price_date))].sort();
   const brands = [...new Set(series.map(r => r.brand))].sort();
   const lookup = new Map(series.map(r => [r.price_date + r.brand, r.price]));
-  const datasets = brands.map((b, i) => ({
-    label: b, data: dates.map(d => lookup.get(d + b) ?? null), borderColor: palette[i % palette.length],
-    backgroundColor: palette[i % palette.length], borderWidth: 2, pointRadius: 0, tension: 0.2, spanGaps: true,
+  const datasets = brands.map(b => ({
+    label: b, data: dates.map(d => lookup.get(d + b) ?? null), borderColor: brandColor[b], backgroundColor: brandColor[b],
+    borderWidth: 2.2, pointRadius: 0, pointHoverRadius: 4, stepped: 'before', spanGaps: true,
   }));
-  const grid = { color: css('--line') }, ticks = { color: css('--muted') };
+  const fuelName = (meta.fuels.find(f => f.fuel_code === state.fuel) || {}).fuel_name || 'ทุกชนิด (เฉลี่ย)';
+  document.getElementById('line-sub').textContent = `${fuelName} · ${dates.length} วัน`;
+  const grid = { color: css('--line') }, ticks = { color: css('--muted'), font: { family: 'IBM Plex Sans Thai' } };
+  const tooltip = { backgroundColor: css('--card'), titleColor: css('--ink'), bodyColor: css('--ink'), borderColor: css('--line'), borderWidth: 1, padding: 10,
+                    callbacks: { label: c => ` ${c.dataset.label || ''} ${fmt(c.parsed.y ?? c.parsed.x)} บาท` } };
   lineChart?.destroy();
   lineChart = new Chart(document.getElementById('line'), {
     type: 'line', data: { labels: dates, datasets },
     options: { maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { labels: { color: css('--ink'), boxWidth: 12 } } },
-      scales: { x: { grid, ticks: { ...ticks, maxTicksLimit: 8 } }, y: { grid, ticks, title: { display: true, text: 'บาท/ลิตร', color: css('--muted') } } } },
+      plugins: { legend: { position: 'bottom', labels: { color: css('--ink'), boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'rectRounded' } }, tooltip },
+      scales: { x: { grid: { display: false }, ticks: { ...ticks, maxTicksLimit: 7, callback: function (v) { return new Date(this.getLabelForValue(v)).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }); } } },
+                y: { grid, ticks, title: { display: true, text: 'บาท/ลิตร', color: css('--muted') } } } },
   });
+  const values = bars.map(r => r.price);
+  const lo = values.length ? Math.floor(Math.min(...values) - 1) : 0;
+  const hi = values.length ? Math.ceil(Math.max(...values) + 1) : 1;
+  const cheapest = Math.min(...values);
   barChart?.destroy();
   barChart = new Chart(document.getElementById('bars'), {
-    type: 'bar', data: { labels: bars.map(r => r.brand), datasets: [{ data: bars.map(r => r.price), backgroundColor: css('--accent'), borderRadius: 4 }] },
-    options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false } },
-      scales: { x: { grid, ticks, beginAtZero: false }, y: { grid: { display: false }, ticks } } },
+    type: 'bar', plugins: [valueLabels],
+    data: { labels: bars.map(r => r.brand), datasets: [{ data: values, backgroundColor: bars.map(r => r.price === cheapest ? '#10b981' : brandColor[r.brand] + '99'), borderRadius: 6, barThickness: 18 }] },
+    options: { indexAxis: 'y', maintainAspectRatio: false, layout: { padding: { right: 44 } }, plugins: { legend: { display: false }, tooltip },
+      scales: { x: { grid, ticks, min: lo, max: hi }, y: { grid: { display: false }, ticks: { ...ticks, color: css('--ink') } } } },
   });
 }
 
@@ -121,14 +186,18 @@ async function loadTable() {
   const t = await getJSON('/api/prices?' + qs({ page: state.page }));
   const pages = Math.max(1, Math.ceil(t.total / t.size));
   if (state.page > pages) { state.page = pages; return loadTable(); }
-  document.getElementById('rows').innerHTML = t.rows.map(r => `<tr><td>${r.price_date}</td><td>${r.brand}</td><td>${r.fuel_name}</td>
-    <td class="num">${fmt(r.price)}</td><td>${r.source}</td><td class="muted">${r.sources}</td></tr>`).join('')
+  document.getElementById('rows').innerHTML = t.rows.map(r => `<tr><td class="mono">${r.price_date}</td><td>${brandTag(r.brand)}</td><td>${r.fuel_name}</td>
+    <td class="num price">${fmt(r.price)}</td><td><span class="src ${r.source}">${srcLabel[r.source] || r.source}</span></td>
+    <td>${r.sources.split(',').map(s => `<span class="src ${s}">${srcLabel[s] || s}</span>`).join('')}</td></tr>`).join('')
     || '<tr><td colspan="6" class="muted">ไม่มีข้อมูลตามตัวกรอง</td></tr>';
-  document.getElementById('pageinfo').textContent = `หน้า ${t.page} / ${pages} · ${fmt(t.total, 0)} รายการ`;
+  document.getElementById('pageinfo').textContent = `หน้า ${t.page} / ${pages}`;
+  document.getElementById('table-sub').textContent = `${fmt(t.total, 0)} รายการ`;
+  document.getElementById('h-rows').textContent = document.getElementById('h-rows').textContent === '–' ? '…' : document.getElementById('h-rows').textContent;
   document.getElementById('prev').disabled = t.page <= 1;
   document.getElementById('next').disabled = t.page >= pages;
 }
 
+getJSON('/api/status').then(s => { document.getElementById('h-rows').textContent = fmt(s.runs[0]?.total_rows, 0); }).catch(() => {});
 init();
 </script>
 {% endblock %}

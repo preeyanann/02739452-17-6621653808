@@ -95,6 +95,34 @@ def kpi():
                    change=float(change["change"]) if change["change"] is not None else None)
 
 
+@app.route("/api/board")
+def board():
+    """ป้ายราคาวันล่าสุดของทุกชนิดน้ำมัน: ต่ำสุด/สูงสุด/เฉลี่ยข้ามผู้ค้า และเทียบ 7 วันก่อน."""
+    rows = query(
+        """
+        WITH latest AS (SELECT max(price_date) AS d FROM fuel_prices),
+        today AS (
+            SELECT p.fuel_code, f.fuel_name, f.fuel_group, min(p.price) AS min_price, max(p.price) AS max_price,
+                   round(avg(p.price), 2) AS avg_price, count(*) AS brands
+            FROM fuel_prices p JOIN dim_fuel f USING (fuel_code), latest
+            WHERE p.price_date = latest.d GROUP BY 1, 2, 3
+        ),
+        week AS (
+            SELECT fuel_code, avg(price) AS avg_price FROM fuel_prices, latest
+            WHERE price_date = latest.d - 7 GROUP BY 1
+        ),
+        cheap AS (
+            SELECT DISTINCT ON (fuel_code) fuel_code, brand FROM fuel_prices, latest
+            WHERE price_date = latest.d ORDER BY fuel_code, price, brand
+        )
+        SELECT t.*, round(t.avg_price - w.avg_price, 2) AS change_7d, c.brand AS cheapest_brand
+        FROM today t LEFT JOIN week w USING (fuel_code) LEFT JOIN cheap c USING (fuel_code)
+        ORDER BY t.fuel_group DESC, t.avg_price
+        """
+    )
+    return jsonify(jsonable(rows))
+
+
 @app.route("/api/series")
 def series():
     where, params = filters()

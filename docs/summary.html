@@ -41,13 +41,13 @@
 <table>
   <tr><th style="width:17%">ระดับ</th><th>สิ่งที่ทำ</th><th style="width:8%">ผล</th></tr>
   <tr><td>ระดับ 1</td><td>DAG <code>fuel_price_pipeline</code>: extract → transform (merge) → load ลง PostgreSQL (<code>fueldb</code>) และเว็บ Flask แสดงตารางกับกราฟ</td><td class="ok">ครบ</td></tr>
-  <tr><td>ระดับ 2</td><td>ดึง 3 แหล่งขนานกันใน TaskGroup <code>extract</code>, แปลงชื่อน้ำมันทุกแหล่งให้เป็น schema เดียว <code>(price_date, brand, fuel_code, price)</code>, ใช้ UPSERT <code>ON CONFLICT DO UPDATE</code> (รันซ้ำ 5 รอบ จำนวนแถวคงที่ 1,830), เว็บมี KPI 5 ตัว และตัวกรองชนิดน้ำมัน ผู้ค้า และช่วงวันที่</td><td class="ok">ครบ</td></tr>
-  <tr><td>ระดับ 3</td><td>• <b>แหล่งล่ม:</b> <code>merge_sources</code> ใช้ <code>trigger_rule=all_done</code> และรวมเฉพาะแหล่งที่สำเร็จ ทดสอบด้วย Variable <code>simulate_down=bangchak_api</code> ได้ผลรอบนั้นเป็น <i>partial</i> และยังโหลดได้ครบ 1,830 แถว<br>
+  <tr><td>ระดับ 2</td><td>ดึง 3 แหล่งขนานกันใน TaskGroup <code>extract</code>, แปลงชื่อน้ำมันทุกแหล่งให้เป็น schema เดียว <code>(price_date, brand, fuel_code, price)</code>, ใช้ UPSERT <code>ON CONFLICT DO UPDATE</code> (รันซ้ำหลายรอบแล้วจำนวนแถวไม่เพิ่ม), เว็บมี KPI 5 ตัว และตัวกรองชนิดน้ำมัน ผู้ค้า และช่วงวันที่</td><td class="ok">ครบ</td></tr>
+  <tr><td>ระดับ 3</td><td>• <b>แหล่งล่ม:</b> <code>merge_sources</code> ใช้ <code>trigger_rule=all_done</code> และรวมเฉพาะแหล่งที่สำเร็จ ทดสอบด้วย Variable <code>simulate_down=bangchak_api</code> ได้ผลรอบนั้นเป็น <i>partial</i> และยังโหลดข้อมูลจากอีก 2 แหล่งได้ครบ<br>
   • <b>ตัดซ้ำข้ามแหล่ง:</b> ราคา PTT มีทั้งจาก ปตท. และ สนพ. ส่วน BCP มีทั้งจากบางจากและ สนพ. จึงเลือก 1 แถวต่อ (วัน, ผู้ค้า, น้ำมัน) โดยให้แหล่งของเจ้าของแบรนด์ชนะ (2,206 แถวดิบ → 1,920 แถว)<br>
-  • <b>Data Quality + branch:</b> ตรวจช่วงราคา 10–100 บาท, วันที่ในอนาคต และราคาที่ต่างจากมัธยฐานของผู้ค้าอื่นเกิน 15% ถ้าไม่ผ่าน DAG จะแตกไปทาง <code>quarantine_bad_rows</code> แล้วย้ายแถวไปตาราง <code>dq_rejects</code> (พบราคา ESSO ผิดปกติ 90 แถว)</td><td class="ok">ครบ</td></tr>
+  • <b>Data Quality + branch:</b> ตรวจช่วงราคา 10–100 บาท, วันที่ในอนาคต และราคาที่ต่างจากมัธยฐานของผู้ค้าอื่นเกิน 10% ถ้าไม่ผ่าน DAG จะแตกไปทาง <code>quarantine_bad_rows</code> แล้วย้ายแถวไปตาราง <code>dq_rejects</code> (พบราคา ESSO ผิดปกติ)</td><td class="ok">ครบ</td></tr>
   <tr><td>โบนัส</td><td>Dynamic Task Mapping: <code>scrape_eppo_day.expand()</code> สร้าง task ละ 1 วัน รวม 30 task · หน้าสถานะ pipeline บนเว็บที่ <code>/status</code></td><td class="ok">ครบ</td></tr>
 </table>
-<p><b>แหล่งข้อมูล:</b> (1) ปตท. SOAP Web Service <code>GetOilPrice</code> (2) บางจาก Oil Price API แบบ JSON (3) สนพ. ใช้ <b>web scraping</b> ด้วย requests + BeautifulSoup โดย GET หน้า ASP.NET เพื่ออ่าน <code>__VIEWSTATE</code> แล้ว POST วันที่ ได้ราคาของ 10 ผู้ค้า (ไม่ใช้ Selenium) ปฏิบัติตาม robots.txt, เว้นระยะ request และไม่เก็บข้อมูลส่วนบุคคล ชุดข้อมูลรวมมี 1,830 รายการ ครอบคลุม 30 วัน, 10 ผู้ค้า และ 11 ชนิดน้ำมัน</p>
+<p><b>แหล่งข้อมูล:</b> (1) ปตท. SOAP Web Service <code>GetOilPrice</code> (2) บางจาก Oil Price API แบบ JSON (3) สนพ. ใช้ <b>web scraping</b> ด้วย requests + BeautifulSoup โดย GET หน้า ASP.NET เพื่ออ่าน <code>__VIEWSTATE</code> แล้ว POST วันที่ ได้ราคาของ 10 ผู้ค้า (ไม่ใช้ Selenium) ปฏิบัติตาม robots.txt, เว้นระยะ request และไม่เก็บข้อมูลส่วนบุคคล ชุดข้อมูลรวมมี 1,800 รายการ ครอบคลุม 30 วัน, 10 ผู้ค้า และ 11 ชนิดน้ำมัน</p>
 
 <figure><img src="images/airflow_graph_outage_test_bangchak.png" class="crop" style="height:390px; object-position: 0 75%"><figcaption>ภาพที่ 1 Graph view (ขวา) และ Grid view (ซ้าย) ของรอบ <code>outage_test_bangchak</code>: <code>extract_bangchak</code> ล้มเหลว (สีแดง) แต่ merge, quality_check และ load ยังทำงานต่อได้ · <code>scrape_eppo_day [30]</code> คือ Dynamic Task Mapping · DQ ไม่ผ่านจึงไปทาง quarantine_bad_rows และ dq_passed ถูก skip</figcaption></figure>
 
@@ -74,7 +74,7 @@
       <td>รัน <code>airflow dags list-import-errors</code></td>
       <td>เปลี่ยน default ของ <code>run_id</code> จาก <code>"{{ run_id }}"</code> เป็น <code>None</code> ให้ TaskFlow inject ค่าจาก context เอง</td></tr>
 </table>
-<p>ข้อสังเกตจาก DQ: ราคา ESSO ใน สนพ. ต่ำกว่าผู้ค้าอื่นประมาณ 20% และวันที่มีผล (24 ก.ย. 2568) ไม่ได้อัปเดต กฎ outlier จึงกักแถวเหล่านี้ไว้ ไม่ให้เข้าชุดข้อมูลหลัก</p>
+<p>ข้อสังเกตจาก DQ: ราคา ESSO ใน สนพ. ต่ำกว่าผู้ค้าอื่นประมาณ 20% และวันที่มีผล (24 ก.ย. 2568) ไม่ได้อัปเดต ตอนแรกตั้งเกณฑ์ outlier ไว้ 15% แต่ป้ายราคาบน dashboard แสดงว่า ESSO ขาย E20 ถูกที่สุด (ต่างจากราคากลาง 14.7% จึงหลุดเกณฑ์) จึงลดเกณฑ์เป็น 10% ตอนนี้ระบบกักแถวของ ESSO ไว้ 120 แถว ไม่ให้เข้าชุดข้อมูลหลัก</p>
 
 <h2>3. การวางแผนและจัดลำดับงาน (13:00–16:00)</h2>
 <table>

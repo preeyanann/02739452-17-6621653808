@@ -40,7 +40,7 @@
 {% block scripts %}
 <script>
 const sourceNames = { ptt_soap: 'ปตท. (SOAP)', bangchak_api: 'บางจาก (API)', eppo_web: 'สนพ. (scraping)' };
-const reasonNames = { outlier_vs_market: 'ต่างจากราคากลาง >15%', price_out_of_range: 'ราคานอกช่วง 10–100', future_date: 'วันที่ในอนาคต' };
+const reasonNames = { outlier_vs_market: 'ต่างจากราคากลาง >10%', price_out_of_range: 'ราคานอกช่วง 10–100', future_date: 'วันที่ในอนาคต' };
 const time = v => v ? new Date(v).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'medium' }) : '–';
 
 async function load() {

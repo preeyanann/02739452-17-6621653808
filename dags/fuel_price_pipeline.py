@@ -19,7 +19,7 @@ from airflow.utils.trigger_rule import TriggerRule
 from fuel_common import FUELS, SOURCE_PRIORITY, hook, log_source, lookback_days, today_bkk, upsert_staging
 
 SCHEMA_SQL = Path(__file__).parent / "sql" / "schema.sql"
-OUTLIER_RATIO = 0.15
+OUTLIER_RATIO = 0.10
 
 
 def _simulate_down(source: str) -> None:
@@ -143,7 +143,7 @@ def fuel_price_pipeline():
 
     @task.branch
     def quality_check() -> str:
-        """ตรวจ: ราคาอยู่ในช่วงสมเหตุสมผล, ไม่ใช่วันในอนาคต, ไม่ต่างจากราคากลางของผู้ค้าอื่นเกิน 15%."""
+        """ตรวจ: ราคาอยู่ในช่วงสมเหตุสมผล, ไม่ใช่วันในอนาคต, ไม่ต่างจากราคากลางของผู้ค้าอื่นเกิน 10%."""
         db = hook()
         db.run(
             f"""
