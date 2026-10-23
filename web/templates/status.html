@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}สถานะ Pipeline{% endblock %}
+{% block content %}
+<h1>สถานะ Pipeline</h1>
+<p class="sub">อ่านจากตาราง pipeline_runs, source_runs และ dq_rejects ที่ DAG <code>fuel_price_pipeline</code> บันทึกไว้ทุกรอบ</p>
+
+<div class="grid kpis">
+  <div class="card kpi"><div class="label">รอบล่าสุด</div><div class="value" id="s-status">–</div><div class="hint" id="s-run">&nbsp;</div></div>
+  <div class="card kpi"><div class="label">แถวในชุดข้อมูลรวม</div><div class="value" id="s-total">–</div><div class="hint">ตาราง fuel_prices</div></div>
+  <div class="card kpi"><div class="label">ผ่าน Data Quality</div><div class="value" id="s-loaded">–</div><div class="hint" id="s-rejected">&nbsp;</div></div>
+  <div class="card kpi"><div class="label">ใช้เวลา</div><div class="value" id="s-time">–</div><div class="hint" id="s-finished">&nbsp;</div></div>
+</div>
+
+<div class="grid two">
+  <div class="card">
+    <h2>แหล่งข้อมูล (รอบล่าสุด)</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>แหล่ง</th><th>สถานะ</th><th style="text-align:right">เรียกสำเร็จ</th><th style="text-align:right">แถว</th><th>ข้อผิดพลาด</th></tr></thead>
+      <tbody id="sources"></tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <h2>แถวที่ไม่ผ่าน Data Quality</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>เหตุผล</th><th>ผู้ค้า</th><th style="text-align:right">แถว</th></tr></thead>
+      <tbody id="rejects"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>ประวัติการรัน</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Run ID</th><th>เริ่ม</th><th>สถานะ</th><th style="text-align:right">หลังรวม</th><th style="text-align:right">ไม่ผ่าน DQ</th><th style="text-align:right">โหลด</th><th style="text-align:right">รวมในตาราง</th><th>หมายเหตุ</th></tr></thead>
+    <tbody id="runs"></tbody>
+  </table></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const sourceNames = { ptt_soap: 'ปตท. (SOAP)', bangchak_api: 'บางจาก (API)', eppo_web: 'สนพ. (scraping)' };
+const reasonNames = { outlier_vs_market: 'ต่างจากราคากลาง >15%', price_out_of_range: 'ราคานอกช่วง 10–100', future_date: 'วันที่ในอนาคต' };
+const time = v => v ? new Date(v).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'medium' }) : '–';
+
+async function load() {
+  const s = await getJSON('/api/status');
+  const run = s.runs[0];
+  if (run) {
+    document.getElementById('s-status').innerHTML = `<span class="tag ${run.status}">${run.status}</span>`;
+    document.getElementById('s-run').textContent = run.run_id;
+    document.getElementById('s-total').textContent = fmt(run.total_rows, 0);
+    document.getElementById('s-loaded').textContent = fmt(run.rows_loaded, 0);
+    document.getElementById('s-rejected').textContent = `ไม่ผ่าน ${fmt(run.rows_rejected, 0)} แถว (ย้ายไป dq_rejects)`;
+    document.getElementById('s-time').textContent = run.seconds != null ? `${run.seconds} วิ` : '–';
+    document.getElementById('s-finished').textContent = 'จบ ' + time(run.finished_at);
+  }
+  document.getElementById('sources').innerHTML = s.sources.map(r => {
+    const st = r.ok === r.calls ? 'ok' : r.ok === 0 ? 'bad' : 'warn';
+    const label = { ok: 'สำเร็จ', bad: 'ล่ม', warn: 'บางส่วน' }[st];
+    return `<tr><td>${sourceNames[r.source] || r.source}</td><td><span class="tag ${st}">${label}</span></td>
+      <td class="num">${r.ok}/${r.calls}</td><td class="num">${fmt(r.rows, 0)}</td><td class="muted">${r.error || ''}</td></tr>`;
+  }).join('') || '<tr><td colspan="5" class="muted">ยังไม่มีข้อมูล</td></tr>';
+  document.getElementById('rejects').innerHTML = s.rejects.map(r => `<tr><td>${reasonNames[r.reason] || r.reason}</td>
+    <td>${r.brand}</td><td class="num">${fmt(r.rows, 0)}</td></tr>`).join('') || '<tr><td colspan="3" class="muted">ผ่านทั้งหมด</td></tr>';
+  document.getElementById('runs').innerHTML = s.runs.map(r => `<tr><td>${r.run_id}</td><td>${time(r.started_at)}</td>
+    <td><span class="tag ${r.status}">${r.status}</span></td><td class="num">${fmt(r.rows_candidate, 0)}</td>
+    <td class="num">${fmt(r.rows_rejected, 0)}</td><td class="num">${fmt(r.rows_loaded, 0)}</td>
+    <td class="num">${fmt(r.total_rows, 0)}</td><td class="muted">${r.note || ''}</td></tr>`).join('');
+}
+load();
+setInterval(load, 15000);
+</script>
+{% endblock %}

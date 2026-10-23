@@ -1,0 +1,83 @@
+x-airflow: &airflow
+  build: .
+  image: fuel-airflow:2.10.5
+  env_file:
+    - path: .env
+      required: false
+  environment: &airflow-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__DEFAULT_TIMEZONE: Asia/Bangkok
+    AIRFLOW__WEBSERVER__DEFAULT_UI_TIMEZONE: Asia/Bangkok
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-fuel}:${POSTGRES_PASSWORD:-fuel}@postgres:5432/airflow
+    AIRFLOW_CONN_FUEL_DB: postgresql://${POSTGRES_USER:-fuel}:${POSTGRES_PASSWORD:-fuel}@postgres:5432/${FUEL_DB:-fueldb}
+    AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: "30"
+    FUEL_LOOKBACK_DAYS: ${FUEL_LOOKBACK_DAYS:-30}
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - airflow-logs:/opt/airflow/logs
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fuel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fuel}
+      POSTGRES_DB: airflow
+      FUEL_DB: ${FUEL_DB:-fueldb}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fuel} -d airflow"]
+      interval: 5s
+      retries: 20
+
+  airflow-init:
+    <<: *airflow
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate &&
+        airflow users create --role Admin --username "$${AIRFLOW_ADMIN_USER:-admin}" --password "$${AIRFLOW_ADMIN_PASSWORD:-admin}" \
+          --firstname Admin --lastname User --email admin@example.com || true
+    restart: "no"
+
+  airflow-webserver:
+    <<: *airflow
+    command: webserver
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow
+    command: scheduler
+    restart: unless-stopped
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  web:
+    build: ./web
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fuel}:${POSTGRES_PASSWORD:-fuel}@postgres:5432/${FUEL_DB:-fueldb}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  airflow-logs:

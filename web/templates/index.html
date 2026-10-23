@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>ราคาน้ำมันขายปลีกรายวัน กรุงเทพฯ และปริมณฑล</h1>
+<p class="sub">รวมจาก ปตท. (SOAP), บางจาก (API) และ สนพ. (web scraping) · ตัดรายการซ้ำข้ามแหล่งแล้ว · หน่วย บาท/ลิตร</p>
+
+<div class="card filters">
+  <label>ชนิดน้ำมัน <select id="fuel"></select></label>
+  <label>ตั้งแต่ <input type="date" id="start"></label>
+  <label>ถึง <input type="date" id="end"></label>
+  <label style="flex:1; min-width:240px">ผู้ค้า (กดเลือกได้หลายราย)<div class="chips" id="brands"></div></label>
+  <button id="reset">ล้างตัวกรอง</button>
+</div>
+
+<div class="grid kpis">
+  <div class="card kpi"><div class="label">ราคาเฉลี่ย</div><div class="value" id="k-avg">–</div><div class="hint">ตามตัวกรอง</div></div>
+  <div class="card kpi"><div class="label">ถูกที่สุด (วันล่าสุด)</div><div class="value" id="k-cheap">–</div><div class="hint" id="k-cheap-who">&nbsp;</div></div>
+  <div class="card kpi"><div class="label">เปลี่ยนแปลงในช่วงที่เลือก</div><div class="value" id="k-change">–</div><div class="hint">วันล่าสุดเทียบวันแรก</div></div>
+  <div class="card kpi"><div class="label">จำนวนรายการ</div><div class="value" id="k-rows">–</div><div class="hint" id="k-rows-hint">&nbsp;</div></div>
+  <div class="card kpi"><div class="label">ข้อมูลล่าสุด</div><div class="value" id="k-latest" style="font-size:20px">–</div><div class="hint" id="k-scope">&nbsp;</div></div>
+</div>
+
+<div class="grid two">
+  <div class="card"><h2>แนวโน้มราคาตามผู้ค้า</h2><div class="chart"><canvas id="line"></canvas></div></div>
+  <div class="card"><h2>เทียบผู้ค้า ณ วันล่าสุด</h2><div class="chart"><canvas id="bars"></canvas></div></div>
+</div>
+
+<div class="card">
+  <h2>ตารางข้อมูล</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>วันที่</th><th>ผู้ค้า</th><th>ชนิดน้ำมัน</th><th style="text-align:right">ราคา</th><th>แหล่งที่เลือก</th><th>พบในแหล่ง</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table></div>
+  <div class="pager"><button id="prev">‹ ก่อนหน้า</button><span id="pageinfo"></span><button id="next">ถัดไป ›</button></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const palette = ['#0b6e4f', '#2f6fdf', '#d9480f', '#9c36b5', '#e8a200', '#1098ad', '#c2255c', '#5c7cfa', '#6b7280', '#37b24d'];
+const state = { fuel: 'gsh95', brands: new Set(), start: '', end: '', page: 1 };
+let lineChart, barChart, meta;
+
+function qs(extra = {}) {
+  const p = new URLSearchParams();
+  if (state.fuel) p.set('fuel', state.fuel);
+  state.brands.forEach(b => p.append('brand', b));
+  if (state.start) p.set('start', state.start);
+  if (state.end) p.set('end', state.end);
+  Object.entries(extra).forEach(([k, v]) => p.set(k, v));
+  return p.toString();
+}
+
+async function init() {
+  meta = await getJSON('/api/meta');
+  const sel = document.getElementById('fuel');
+  sel.innerHTML = '<option value="">ทุกชนิด</option>' + meta.fuels.map(f => `<option value="${f.fuel_code}">${f.fuel_name}</option>`).join('');
+  sel.value = state.fuel;
+  document.getElementById('brands').innerHTML = meta.brands.map(b => `<span class="chip" data-b="${b}">${b}</span>`).join('');
+  document.querySelectorAll('.chip').forEach(c => c.onclick = () => {
+    state.brands.has(c.dataset.b) ? state.brands.delete(c.dataset.b) : state.brands.add(c.dataset.b);
+    c.classList.toggle('on'); state.page = 1; refresh();
+  });
+  for (const id of ['start', 'end']) {
+    const el = document.getElementById(id); el.min = meta.min_date; el.max = meta.max_date;
+    el.onchange = () => { state[id] = el.value; state.page = 1; refresh(); };
+  }
+  sel.onchange = () => { state.fuel = sel.value; state.page = 1; refresh(); };
+  document.getElementById('reset').onclick = () => {
+    state.fuel = 'gsh95'; state.brands.clear(); state.start = state.end = ''; state.page = 1;
+    sel.value = state.fuel; document.getElementById('start').value = document.getElementById('end').value = '';
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('on')); refresh();
+  };
+  document.getElementById('prev').onclick = () => { if (state.page > 1) { state.page--; loadTable(); } };
+  document.getElementById('next').onclick = () => { state.page++; loadTable(); };
+  refresh();
+}
+
+async function refresh() { await Promise.all([loadKpi(), loadCharts(), loadTable()]); }
+
+async function loadKpi() {
+  const k = await getJSON('/api/kpi?' + qs());
+  const s = k.summary;
+  document.getElementById('k-avg').textContent = fmt(s.avg_price);
+  document.getElementById('k-cheap').textContent = k.cheapest ? fmt(k.cheapest.price) : '–';
+  document.getElementById('k-cheap-who').textContent = k.cheapest ? `${k.cheapest.brand} · ${k.cheapest.fuel_name}` : '';
+  const ch = document.getElementById('k-change');
+  ch.textContent = k.change == null ? '–' : (k.change > 0 ? '+' : '') + fmt(k.change);
+  ch.style.color = k.change > 0 ? css('--bad') : k.change < 0 ? css('--ok') : '';
+  document.getElementById('k-rows').textContent = fmt(s.rows, 0);
+  document.getElementById('k-rows-hint').textContent = `ตรวจไขว้ >1 แหล่ง ${fmt(s.cross_checked, 0)} รายการ`;
+  document.getElementById('k-latest').textContent = s.latest ? new Date(s.latest).toLocaleDateString('th-TH', { dateStyle: 'medium' }) : '–';
+  document.getElementById('k-scope').textContent = `${s.brands} ผู้ค้า · ${s.fuels} ชนิดน้ำมัน`;
+}
+
+async function loadCharts() {
+  const [series, bars] = await Promise.all([getJSON('/api/series?' + qs()), getJSON('/api/brand-compare?' + qs())]);
+  const dates = [...new Set(series.map(r => r.price_date))].sort();
+  const brands = [...new Set(series.map(r => r.brand))].sort();
+  const lookup = new Map(series.map(r => [r.price_date + r.brand, r.price]));
+  const datasets = brands.map((b, i) => ({
+    label: b, data: dates.map(d => lookup.get(d + b) ?? null), borderColor: palette[i % palette.length],
+    backgroundColor: palette[i % palette.length], borderWidth: 2, pointRadius: 0, tension: 0.2, spanGaps: true,
+  }));
+  const grid = { color: css('--line') }, ticks = { color: css('--muted') };
+  lineChart?.destroy();
+  lineChart = new Chart(document.getElementById('line'), {
+    type: 'line', data: { labels: dates, datasets },
+    options: { maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { labels: { color: css('--ink'), boxWidth: 12 } } },
+      scales: { x: { grid, ticks: { ...ticks, maxTicksLimit: 8 } }, y: { grid, ticks, title: { display: true, text: 'บาท/ลิตร', color: css('--muted') } } } },
+  });
+  barChart?.destroy();
+  barChart = new Chart(document.getElementById('bars'), {
+    type: 'bar', data: { labels: bars.map(r => r.brand), datasets: [{ data: bars.map(r => r.price), backgroundColor: css('--accent'), borderRadius: 4 }] },
+    options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { x: { grid, ticks, beginAtZero: false }, y: { grid: { display: false }, ticks } } },
+  });
+}
+
+async function loadTable() {
+  const t = await getJSON('/api/prices?' + qs({ page: state.page }));
+  const pages = Math.max(1, Math.ceil(t.total / t.size));
+  if (state.page > pages) { state.page = pages; return loadTable(); }
+  document.getElementById('rows').innerHTML = t.rows.map(r => `<tr><td>${r.price_date}</td><td>${r.brand}</td><td>${r.fuel_name}</td>
+    <td class="num">${fmt(r.price)}</td><td>${r.source}</td><td class="muted">${r.sources}</td></tr>`).join('')
+    || '<tr><td colspan="6" class="muted">ไม่มีข้อมูลตามตัวกรอง</td></tr>';
+  document.getElementById('pageinfo').textContent = `หน้า ${t.page} / ${pages} · ${fmt(t.total, 0)} รายการ`;
+  document.getElementById('prev').disabled = t.page <= 1;
+  document.getElementById('next').disabled = t.page >= pages;
+}
+
+init();
+</script>
+{% endblock %}
